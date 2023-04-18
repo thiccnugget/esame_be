@@ -54,7 +54,7 @@ router.post(
   body("organization").exists().isString(),
   body("venue").exists().isString(),
   body("date").exists(), checkDate,
-  body("tickets").exists().isArray(),
+  body("tickets").contains([{"name":String, "price":Number, "quantity":Number}]),
   checkErrors,
   isAuth,
   async (req, res) => {
@@ -73,6 +73,7 @@ router.put(
   body("name").exists().isString(),
   body("organization").exists().isString(),
   body("date").exists(), checkDate,
+  body("tickets").contains([{"name":String, "price":Number, "quantity":Number}]),
   checkErrors,
   isAuth,
   async (req, res) => {
@@ -97,6 +98,7 @@ router.put(
 );
 
 // ---------- DELETE ---------- //
+
 router.delete(
   "/:id",
   header("authorization").isJWT(),
