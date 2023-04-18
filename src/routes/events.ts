@@ -33,14 +33,17 @@ router.post("/:id/tickets",
 
   if (event == null) {
     return res.status(404).json({ message: "Event not found" });
-  } else if(event.tickets.some((t)=>t.quantity!<=0)){
+  } else if(event.tickets.some((t)=>t.quantity! < Math.min(req.body.tickets.map((element : any) =>element.quantity )) || t.quantity === 0)){
     return res.status(404).json({ message: "Not enough tickets", "available": event.tickets});
   } else { 
+      let tot = 0;
       req.body.tickets.map((element : any) => {
-      const index = event.tickets.findIndex((el)=>el.name===element.name);
-      event.tickets[index].quantity! -= element.quantity;
-  });
-  res.status(200).json(event);
+          const index = event.tickets.findIndex((el)=>el.name===element.name);
+          event.tickets[index].quantity! -= element.quantity;
+          tot += element.quantity * element.price;
+      });
+      event.save();
+      return res.status(200).json({event,"Total price": `${tot}€`});
   }
 });
 
