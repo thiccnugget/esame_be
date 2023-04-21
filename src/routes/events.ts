@@ -22,29 +22,32 @@ export const checkDate = async (req: Request, res: Response, next: NextFunction)
 
 //ACQUISTO
 router.post("/:id/tickets", 
-  param("id").isMongoId(),
   body("tickets").isArray(),
   body("tickets").contains({"name":String, "quantity":Number}),
   checkErrors, 
+  isAuth,
   async (req, res) => {
   const { id } = req.params;
   
-  const event = await Event.findById(id);
-
-  if (event == null) {
+  try{
+    const event = await Event.findById(id);
+    if(event !== null){ 
+      if(event.tickets.some((t)=>t.quantity! < Math.min(req.body.tickets.map((element : any) =>element.quantity )) || t.quantity === 0)){
+        return res.status(400).json({ message: "Not enough tickets", "available": event.tickets});
+      } else { 
+          let tot = 0;
+          req.body.tickets.map((element : any) => {
+              const index = event.tickets.findIndex((el)=>el.name===element.name);
+              event.tickets[index].quantity! -= element.quantity;
+              tot += element.quantity * element.price;
+          });
+          event.save();
+          return res.status(201).json({event,"Total price": `${tot}€`});
+      }
+    }
+  }catch{
     return res.status(404).json({ message: "Event not found" });
-  } else if(event.tickets.some((t)=>t.quantity! < Math.min(req.body.tickets.map((element : any) =>element.quantity )) || t.quantity === 0)){
-    return res.status(404).json({ message: "Not enough tickets", "available": event.tickets});
-  } else { 
-      let tot = 0;
-      req.body.tickets.map((element : any) => {
-          const index = event.tickets.findIndex((el)=>el.name===element.name);
-          event.tickets[index].quantity! -= element.quantity;
-          tot += element.quantity * element.price;
-      });
-      event.save();
-      return res.status(200).json({event,"Total price": `${tot}€`});
-  }
+  }  
 });
 
 
@@ -123,28 +126,29 @@ router.delete(
 
 //CON ID
 router.get("/:id", 
-  param("id").isMongoId(),
-  checkErrors, 
   async (req, res) => {
   const { id } = req.params;
-  const event = await Event.findById(id);
-  if (!event) {
+
+  try{
+    const event = await Event.findById(id);
+  }catch{
     return res.status(404).json({ message: "Event not found" });
   }
-  res.json(event);
+  res.status(200).json(event);
 });
 
 //CON ID - SOLO TICKETS E NOME
 router.get("/:id/tickets", 
-  param("id").isMongoId(),
-  checkErrors, 
   async (req, res) => {
   const { id } = req.params;
-  const event = await Event.findById(id).select(["name","tickets"]);
-  if (!event) {
+  try{
+    const event = await Event.findById(id).select(["name","tickets"]);
+    if(event != null){ 
+      res.status(200).json(event);
+    }
+  }catch{
     return res.status(404).json({ message: "Event not found" });
   }
-  res.json(event);
 });
 
 // TUTTI GLI EVENTI
@@ -157,7 +161,7 @@ router.get(
   checkErrors,
   async (req, res) => {
     const events = await Event.find({ ...req.query });
-    res.json(events);
+    res.status(200).json({ events, length:events.length});
   }
 );
 

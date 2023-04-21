@@ -11,13 +11,14 @@ import { checkErrors } from "./utils";
 
 export const isAuth = async (req: Request, res: Response, next: NextFunction) => {
   const auth = req.headers.authorization as string;
-  const user = jwt.verify(auth, jwtToken) as { id: string };
-  res.locals.userFinded = await User.findById(user.id);
-  if (res.locals.userFinded) {
-    return next();
-  } else {
-    return res.status(400).json({ message: "token not valid" });
+  try{
+    const user = jwt.verify(auth, jwtToken) as { id: string };
+    res.locals.userFinded = await User.findById(user.id);
+  }catch{
+    return res.status(401).json({ message: "token not valid" });
   }
+
+  return next();
 };
 
 router.post(
